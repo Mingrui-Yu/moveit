@@ -1770,7 +1770,14 @@ void CollisionEnvDistanceField::updateDistanceObject(const std::string& id, Dist
         const shapes::OcTree* octree_shape = static_cast<const shapes::OcTree*>(shape.get());
         std::shared_ptr<const octomap::OcTree> octree = octree_shape->octree;
 
-        shape_points.push_back(std::make_shared<PosedBodyPointDecomposition>(octree));
+        // mingrui comment: 此处原来将octree转为points的实现是错误的。
+        // shape_points.push_back(std::make_shared<PosedBodyPointDecomposition>(octree));
+
+        // mingrui add: 正确的将octree转为points的实现
+        EigenSTL::vector_Vector3d octree_points;
+        dfce->distance_field_->getOcTreePoints(octree.get(), &octree_points);
+        shape_points.push_back(std::make_shared<PosedBodyPointDecomposition>(octree_points));
+        
       }
       else
       {
@@ -1792,10 +1799,12 @@ void CollisionEnvDistanceField::updateDistanceObject(const std::string& id, Dist
   }
 }
 
+
 CollisionEnvDistanceField::DistanceFieldCacheEntryWorldPtr
 CollisionEnvDistanceField::generateDistanceFieldCacheEntryWorld()
 {
   DistanceFieldCacheEntryWorldPtr dfce(new DistanceFieldCacheEntryWorld());
+
   dfce->distance_field_ = std::make_shared<distance_field::PropagationDistanceField>(
       size_.x(), size_.y(), size_.z(), resolution_, origin_.x() - 0.5 * size_.x(), origin_.y() - 0.5 * size_.y(),
       origin_.z() - 0.5 * size_.z(), max_propogation_distance_, use_signed_distance_field_);
@@ -1806,7 +1815,9 @@ CollisionEnvDistanceField::generateDistanceFieldCacheEntryWorld()
   {
     updateDistanceObject(object.first, dfce, add_points, subtract_points);
   }
+
   dfce->distance_field_->addPointsToField(add_points);
+
   return dfce;
 }
 

@@ -349,14 +349,29 @@ collision_detection::PosedBodyPointDecomposition::PosedBodyPointDecomposition(
     const std::shared_ptr<const octomap::OcTree>& octree)
   : body_decomposition_()
 {
+    // mingrui add: 错误警告
+    ROS_ERROR_NAMED("collision_distance_field_types", 
+        "PosedBodyPointDecomposition(octree) cannot work correctly !");
+
   int num_nodes = octree->getNumLeafNodes();
   posed_collision_points_.reserve(num_nodes);
+
+// mingrui: 这段遍历octomap中的障碍物的点的代码是错误的。
   for (octomap::OcTree::tree_iterator tree_iter = octree->begin_tree(); tree_iter != octree->end_tree(); ++tree_iter)
   {
     Eigen::Vector3d p = Eigen::Vector3d(tree_iter.getX(), tree_iter.getY(), tree_iter.getZ());
     posed_collision_points_.push_back(p);
   }
 }
+
+// mingrui add the function
+collision_detection::PosedBodyPointDecomposition::PosedBodyPointDecomposition(
+    const EigenSTL::vector_Vector3d &points)
+  : body_decomposition_()
+{
+    posed_collision_points_.insert(posed_collision_points_.end(), points.begin(), points.end());
+}
+
 
 void collision_detection::PosedBodyPointDecomposition::updatePose(const Eigen::Isometry3d& trans)
 {
