@@ -31,7 +31,7 @@ Install the moveit packages in this repository：
 ```
 cd <WORKSPACE>/src
 
-git clone https://github.com/THU-DA-Robotics/moveit.git -b mingrui-noetic
+git clone https://github.com/Mingrui-Yu/moveit.git
 ```
 
 Install other dependencies：
