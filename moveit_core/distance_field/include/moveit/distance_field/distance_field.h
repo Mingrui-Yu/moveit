@@ -586,13 +586,17 @@ public:
    */
   virtual double getUninitializedDistance() const = 0;
 
-protected:
+
+// mingrui change the function from protected to public
   /**
    * @brief Get the points associated with an octree.
    * @param [in] octree The octree to find points for.
    * @param [out] points The points determined for this octree.
    */
   void getOcTreePoints(const octomap::OcTree* octree, EigenSTL::vector_Vector3d* points);
+
+
+protected:
 
   /**
    * \brief Helper function that sets the point value and color given
