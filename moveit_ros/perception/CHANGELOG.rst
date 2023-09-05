@@ -2,6 +2,21 @@
 Changelog for package moveit_ros_perception
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+1.1.12 (2023-05-13)
+-------------------
+* MeshFilter: handle both, 32FC1 and 16UC1 encodings of depth images (`#3387 <https://github.com/ros-planning/moveit/issues/3387>`_)
+* Fix memory leak in mesh filter (`#3371 <https://github.com/ros-planning/moveit/issues/3371>`_)
+* Drop lib/ prefix from plugin paths (`#3305 <https://github.com/ros-planning/moveit/issues/3305>`_)
+* Contributors: Berke Algül, Jochen Sprickerhof, Rui Luo
+
+1.1.11 (2022-12-21)
+-------------------
+
+1.1.10 (2022-09-13)
+-------------------
+* Replace bind() with lambdas (`#3106 <https://github.com/ros-planning/moveit/issues/3106>`_)
+* Contributors: Michael Görner, Robert Haschke
+
 1.1.9 (2022-03-06)
 ------------------
 * Use GLEW::GLEW link target (`#3079 <https://github.com/ros-planning/moveit/issues/3079>`_)

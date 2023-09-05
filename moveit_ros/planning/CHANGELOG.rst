@@ -2,6 +2,44 @@
 Changelog for package moveit_ros_planning
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+1.1.12 (2023-05-13)
+-------------------
+* Add CSM tests (`#3395 <https://github.com/ros-planning/moveit/issues/3395>`_)
+* CSM: do not jump back in time (`#3393 <https://github.com/ros-planning/moveit/issues/3393>`_)
+* Fix MoveItCpp issues (`#3369 <https://github.com/ros-planning/moveit/issues/3369>`_)
+* Skip executing zero-duration trajectories (`#3362 <https://github.com/ros-planning/moveit/issues/3362>`_)
+* Drop unnecessary cmake dependency on moveit_resources (`#3343 <https://github.com/ros-planning/moveit/issues/3343>`_)
+* Fix (some) doxygen warnings (`#3315 <https://github.com/ros-planning/moveit/issues/3315>`_)
+* Switch master build to C++17 (`#3313 <https://github.com/ros-planning/moveit/issues/3313>`_)
+* Drop lib/ prefix from plugin paths (`#3305 <https://github.com/ros-planning/moveit/issues/3305>`_)
+* Contributors: Jochen Sprickerhof, Michael Görner, Robert Haschke
+
+1.1.11 (2022-12-21)
+-------------------
+* Backport ruckig trajectory_processing plugin (`#2902 <https://github.com/ros-planning/moveit/issues/2902>`_)
+* Allow planning with multiple pipelines in parallel with moveit_cpp (`#3244 <https://github.com/ros-planning/moveit/issues/3244>`_)
+* Merge PR `#3262 <https://github.com/ros-planning/moveit/issues/3262>`_: Short-circuit planning adapters
+
+  - Early return from failing planning adapters, namely FixStartStateCollision and FixStartStatePathConstraint
+  - Propagate the error code via `MotionPlanResponse::error_code\_`
+  - Add string translations for all error codes
+* Cleanup translation of MoveItErrorCode to string
+
+  - Move default code to moveit_core/utils
+  - Override defaults in existing getActionResultString()
+  - Provide translations for all error codes defined in moveit_msgs
+* Short-circuit planning request adapters
+* Contributors: Robert Haschke, Simon Schmeisser
+
+1.1.10 (2022-09-13)
+-------------------
+* Limit Cartesian speed for link(s) (`#2856 <https://github.com/ros-planning/moveit/issues/2856>`_)
+* trajectory execution manager: reactivate tests (`#3177 <https://github.com/ros-planning/moveit/issues/3177>`_)
+* Clean up TrajectoryExecutionManager API (`#3178 <https://github.com/ros-planning/moveit/issues/3178>`_)
+* MoveItCpp: Allow multiple pipelines (`#3131 <https://github.com/ros-planning/moveit/issues/3131>`_)
+* Replace bind() with lambdas (`#3106 <https://github.com/ros-planning/moveit/issues/3106>`_)
+* Contributors: Jochen Sprickerhof, Michael Görner, Robert Haschke, cambel, v4hn
+
 1.1.9 (2022-03-06)
 ------------------
 

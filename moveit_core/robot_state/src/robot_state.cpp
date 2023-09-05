@@ -797,7 +797,8 @@ void RobotState::updateStateWithLinkAt(const LinkModel* link, const Eigen::Isome
         global_link_transforms_[attached_body.second->getAttachedLink()->getLinkIndex()]);
 }
 
-const LinkModel* RobotState::getRigidlyConnectedParentLinkModel(const std::string& frame) const
+const LinkModel* RobotState::getRigidlyConnectedParentLinkModel(const std::string& frame, Eigen::Isometry3d* transform,
+                                                                const moveit::core::JointModelGroup* jmg) const
 {
   const moveit::core::LinkModel* link{ nullptr };
 
@@ -810,16 +811,35 @@ const LinkModel* RobotState::getRigidlyConnectedParentLinkModel(const std::strin
     auto body{ getAttachedBody(object) };
     if (!body->hasSubframeTransform(frame))
       return nullptr;
+    if (transform)
+      *transform = body->getGlobalSubframeTransform(frame);
     link = body->getAttachedLink();
   }
   else if (hasAttachedBody(frame))
   {
-    link = getAttachedBody(frame)->getAttachedLink();
+    auto body{ getAttachedBody(frame) };
+    if (transform)
+      *transform = body->getGlobalPose();
+    link = body->getAttachedLink();
   }
   else if (getRobotModel()->hasLinkModel(frame))
+  {
     link = getLinkModel(frame);
-
-  return getRobotModel()->getRigidlyConnectedParentLinkModel(link);
+    if (transform)
+    {
+      BOOST_VERIFY(checkLinkTransforms());
+      *transform = global_link_transforms_[link->getLinkIndex()];
+    }
+  }
+  // link is valid and transform describes pose of frame w.r.t. global frame
+  auto* parent = getRobotModel()->getRigidlyConnectedParentLinkModel(link, jmg);
+  if (parent && transform)
+  {
+    BOOST_VERIFY(checkLinkTransforms());
+    // compute transform from parent link to frame
+    *transform = global_link_transforms_[parent->getLinkIndex()].inverse() * *transform;
+  }
+  return parent;
 }
 
 bool RobotState::satisfiesBounds(double margin) const
@@ -1506,7 +1526,7 @@ bool RobotState::setFromIK(const JointModelGroup* jmg, const Eigen::Isometry3d& 
 
 namespace
 {
-bool ikCallbackFnAdapter(RobotState* state, const JointModelGroup* group,
+void ikCallbackFnAdapter(RobotState* state, const JointModelGroup* group,
                          const GroupStateValidityCallbackFn& constraint, const geometry_msgs::Pose& /*unused*/,
                          const std::vector<double>& ik_sol, moveit_msgs::MoveItErrorCodes& error_code)
 {
@@ -1518,7 +1538,6 @@ bool ikCallbackFnAdapter(RobotState* state, const JointModelGroup* group,
     error_code.val = moveit_msgs::MoveItErrorCodes::SUCCESS;
   else
     error_code.val = moveit_msgs::MoveItErrorCodes::NO_IK_SOLUTION;
-  return true;
 }
 }  // namespace
 
@@ -1658,8 +1677,7 @@ bool RobotState::setFromIK(const JointModelGroup* jmg, const EigenSTL::vector_Is
     if (!setToIKSolverFrame(pose, solver))
       return false;
 
-    // try all of the solver's possible tip frames to see if they uniquely align with any of our passed in pose tip
-    // frames
+    // try all of the solver's possible tip frames to see if they match with any of the passed-in pose tip frames
     bool found_valid_frame = false;
     std::size_t solver_tip_id;  // our current index
     for (solver_tip_id = 0; solver_tip_id < solver_tip_frames.size(); ++solver_tip_id)
@@ -1678,39 +1696,33 @@ bool RobotState::setFromIK(const JointModelGroup* jmg, const EigenSTL::vector_Is
 
       if (pose_frame != solver_tip_frame)
       {
-        if (hasAttachedBody(pose_frame))
+        Eigen::Isometry3d pose_parent_to_frame;
+        auto* pose_parent = getRigidlyConnectedParentLinkModel(pose_frame, &pose_parent_to_frame, jmg);
+        if (!pose_parent)
         {
-          const AttachedBody* body = getAttachedBody(pose_frame);
-          pose_frame = body->getAttachedLinkName();
-          pose = pose * body->getPose().inverse();
+          ROS_ERROR_STREAM_NAMED(LOGNAME, "Pose frame '" << pose_frame << "' does not exist.");
+          return false;
         }
-        if (pose_frame != solver_tip_frame)
+        Eigen::Isometry3d tip_parent_to_tip;
+        auto* tip_parent = getRigidlyConnectedParentLinkModel(solver_tip_frame, &tip_parent_to_tip, jmg);
+        if (!tip_parent)
         {
-          const moveit::core::LinkModel* link_model = getLinkModel(pose_frame);
-          if (!link_model)
-          {
-            ROS_ERROR_STREAM_NAMED(LOGNAME, "Pose frame '" << pose_frame << "' does not exist.");
-            return false;
-          }
-          const moveit::core::LinkTransformMap& fixed_links = link_model->getAssociatedFixedTransforms();
-          for (const std::pair<const LinkModel* const, Eigen::Isometry3d>& fixed_link : fixed_links)
-            if (Transforms::sameFrame(fixed_link.first->getName(), solver_tip_frame))
-            {
-              pose_frame = solver_tip_frame;
-              pose = pose * fixed_link.second;
-              break;
-            }
+          ROS_ERROR_STREAM_NAMED(LOGNAME, "Solver tip frame '" << solver_tip_frame << "' does not exist.");
+          return false;
         }
-
-      }  // end if pose_frame
-
-      // Check if this pose frame works
-      if (pose_frame == solver_tip_frame)
+        if (pose_parent == tip_parent)
+        {
+          // transform goal pose as target for solver_tip_frame (instead of pose_frame)
+          pose = pose * pose_parent_to_frame.inverse() * tip_parent_to_tip;
+          found_valid_frame = true;
+          break;
+        }
+      }
+      else
       {
         found_valid_frame = true;
         break;
       }
-
     }  // end for solver_tip_frames
 
     // Make sure one of the tip frames worked
@@ -1920,13 +1932,6 @@ bool RobotState::setFromIKSubgroups(const JointModelGroup* jmg, const EigenSTL::
 
   // Convert Eigen poses to geometry_msg format
   std::vector<geometry_msgs::Pose> ik_queries(poses_in.size());
-  kinematics::KinematicsBase::IKCallbackFn ik_callback_fn;
-  if (constraint)
-    ik_callback_fn = [this, jmg, constraint](const geometry_msgs::Pose pose, const std::vector<double>& joints,
-                                             moveit_msgs::MoveItErrorCodes& error_code) {
-      ikCallbackFnAdapter(this, jmg, constraint, pose, joints, error_code);
-    };
-
   for (std::size_t i = 0; i < transformed_poses.size(); ++i)
   {
     Eigen::Quaterniond quat(transformed_poses[i].linear());
@@ -2298,6 +2303,55 @@ std::ostream& operator<<(std::ostream& out, const RobotState& s)
 {
   s.printStateInfo(out);
   return out;
+}
+
+bool haveSameAttachedObjects(const RobotState& left, const RobotState& right, const std::string& prefix)
+{
+  std::vector<const moveit::core::AttachedBody*> left_attached;
+  std::vector<const moveit::core::AttachedBody*> right_attached;
+  left.getAttachedBodies(left_attached);
+  right.getAttachedBodies(right_attached);
+  if (left_attached.size() != right_attached.size())
+  {
+    ROS_DEBUG_STREAM(prefix << "different number of objects");
+    return false;
+  }
+
+  for (const moveit::core::AttachedBody* left_object : left_attached)
+  {
+    auto it = std::find_if(right_attached.cbegin(), right_attached.cend(),
+                           [left_object](const moveit::core::AttachedBody* object) {
+                             return object->getName() == left_object->getName();
+                           });
+    if (it == right_attached.cend())
+    {
+      ROS_DEBUG_STREAM(prefix << "object missing: " << left_object->getName());
+      return false;
+    }
+    const moveit::core::AttachedBody* right_object = *it;
+    if (left_object->getAttachedLink() != right_object->getAttachedLink())
+    {
+      ROS_DEBUG_STREAM(prefix << "different attach links: " << left_object->getName() << " attached to "
+                              << left_object->getAttachedLinkName() << " / " << right_object->getAttachedLinkName());
+      return false;  // links not matching
+    }
+    if (left_object->getShapes().size() != right_object->getShapes().size())
+    {
+      ROS_DEBUG_STREAM(prefix << "different object shapes: " << left_object->getName());
+      return false;  // shapes not matching
+    }
+
+    auto left_it = left_object->getShapePosesInLinkFrame().cbegin();
+    auto left_end = left_object->getShapePosesInLinkFrame().cend();
+    auto right_it = right_object->getShapePosesInLinkFrame().cbegin();
+    for (; left_it != left_end; ++left_it, ++right_it)
+      if (!(left_it->matrix() - right_it->matrix()).isZero(1e-4))
+      {
+        ROS_DEBUG_STREAM(prefix << "different pose of attached object shape: " << left_object->getName());
+        return false;  // transforms do not match
+      }
+  }
+  return true;
 }
 
 }  // end of namespace core

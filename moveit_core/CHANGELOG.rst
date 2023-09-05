@@ -2,6 +2,70 @@
 Changelog for package moveit_core
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+1.1.12 (2023-05-13)
+-------------------
+* Generalize RobotState::setFromIK() (`<https://github.com/ros-planning/moveit/issues/3388>`_)
+* Time parameterization with torque limits, based on TOTG (`#3412 <https://github.com/ros-planning/moveit/issues/3412>`_, `#3427 <https://github.com/ros-planning/moveit/issues/3427>`_)
+* Make XmlRpcValue arguments const references (`#3419 <https://github.com/ros-planning/moveit/issues/3419>`_)
+* Differential drive for planar Joints (`#3359 <https://github.com/ros-planning/moveit/issues/3359>`_)
+* Fix deprecation warnings in Debian bookworm (`#3397 <https://github.com/ros-planning/moveit/issues/3397>`_)
+* Add JointModel::satisfiesAccelerationBounds() (`#3396 <https://github.com/ros-planning/moveit/issues/3396>`_)
+* Add CSM tests (`#3395 <https://github.com/ros-planning/moveit/issues/3395>`_)
+* Fix TOTG: could return vels/accels greater than the limits (`#3394 <https://github.com/ros-planning/moveit/issues/3394>`_)
+* Propagate "clear octomap" actions to monitoring planning scenes (`#3134 <https://github.com/ros-planning/moveit/issues/3134>`_)
+* Fix (some) doxygen warnings (`#3315 <https://github.com/ros-planning/moveit/issues/3315>`_)
+* Switch master build to C++17 (`#3313 <https://github.com/ros-planning/moveit/issues/3313>`_)
+* Drop lib/ prefix from plugin paths (`#3305 <https://github.com/ros-planning/moveit/issues/3305>`_)
+* Improve Ruckig time parameterization
+
+  * Check for a Ruckig jerk limit parameter (`#3375 <https://github.com/ros-planning/moveit/issues/3375>`_)
+  * Optionally mitigate Ruckig overshoot
+  * Reduce number of duration extensions
+  * Fix termination condition (`#3348 <https://github.com/ros-planning/moveit/issues/3348>`_)
+  * Fix tests (`#3300 <https://github.com/ros-planning/moveit/issues/3300>`_)
+* Contributors: Andy Zelenak, Filip Sund, Jochen Sprickerhof, Michael Görner, Robert Haschke, Scott Chow, Tobias Fischer
+
+1.1.11 (2022-12-21)
+-------------------
+* Fix some consistency issues in PlanningScene handling (`#3298 <https://github.com/ros-planning/moveit/issues/3298>`_)
+* Backport ruckig trajectory_processing plugin (`#2902 <https://github.com/ros-planning/moveit/issues/2902>`_)
+* version.h: automatically bump patch number for devel builds (`#3211 <https://github.com/ros-planning/moveit/issues/3211>`_)
+* Merge fixes+improvements to ``PlanningScene`` editing in rviz: `#3263 <https://github.com/ros-planning/moveit/issues/3263>`_, `#3264 <https://github.com/ros-planning/moveit/issues/3264>`_, `#3296 <https://github.com/ros-planning/moveit/issues/3296>`_
+* Fix loading of ``PlanningScene`` from ``.scene`` text file: Replace existing world objects
+* Drop return value from ``IKCallbackFn`` usage (`#3277 <https://github.com/ros-planning/moveit/issues/3277>`_)
+* Allow planning with multiple pipelines in parallel with ``moveit_cpp`` (`#3244 <https://github.com/ros-planning/moveit/issues/3244>`_)
+* MotionPlanningDisplay: only allow execution if start state is up-to-date
+* Merge PR `#3262 <https://github.com/ros-planning/moveit/issues/3262>`_: Short-circuit planning adapters
+
+  - Early return from failing planning adapters, namely ``FixStartStateCollision`` and ``FixStartStatePathConstraint``
+  - Propagate the error code via ``MotionPlanResponse::error_code_``
+  - Add string translations for all error codes
+* Cleanup translation of MoveItErrorCode to string
+
+  - Move default code to moveit_core/utils
+  - Override defaults in existing getActionResultString()
+  - Provide translations for all error codes defined in moveit_msgs
+* Add debug message in call stack of planning_request_adapters
+* Contributors: Robert Haschke, Simon Schmeisser
+
+1.1.10 (2022-09-13)
+-------------------
+* Limit Cartesian speed for link(s) (`#2856 <https://github.com/ros-planning/moveit/issues/2856>`_)
+* Generalize computeCartesianPath() to consider a link_offset (`#3197 <https://github.com/ros-planning/moveit/issues/3197>`_)
+* Generate version.h with git branch and commit hash (`#2793 <https://github.com/ros-planning/moveit/issues/2793>`_)
+* robot_model_test_utils: Add loadIKPluginForGroup()
+* Remove ConstraintSampler::project() (`#3170 <https://github.com/ros-planning/moveit/issues/3170>`_)
+* Add dual arm test (`#3119 <https://github.com/ros-planning/moveit/issues/3119>`_)
+* Fix PlanarJointModel::satisfiesPositionBounds (`#3160 <https://github.com/ros-planning/moveit/issues/3160>`_)
+* Switch to hpp headers of pluginlib
+* Fix bug in applying planning scene diffs that have attached collision objects (`#3124 <https://github.com/ros-planning/moveit/issues/3124>`_)
+* Fix flaky constraint sampler test (`#3135 <https://github.com/ros-planning/moveit/issues/3135>`_)
+* Constraint samplers with seed (`#3112 <https://github.com/ros-planning/moveit/issues/3112>`_)
+* Replace bind() with lambdas (`#3106 <https://github.com/ros-planning/moveit/issues/3106>`_)
+* Fix null pointer access to CollisionEnvObject in PlanningScene (`#3104 <https://github.com/ros-planning/moveit/issues/3104>`_)
+* ACM: Consider default entries when packing a ROS message (`#3096 <https://github.com/ros-planning/moveit/issues/3096>`_)
+* Contributors: Captain Yoshi, Jafar, Jochen Sprickerhof, Michael Görner, Robert Haschke, Rufus Wong, Tahsincan Köse, cambel
+
 1.1.9 (2022-03-06)
 ------------------
 * Add special case for sphere bodies in sphere decomposition (`#3056 <https://github.com/ros-planning/moveit/issues/3056>`_)

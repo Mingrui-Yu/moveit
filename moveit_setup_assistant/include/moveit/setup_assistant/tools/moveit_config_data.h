@@ -37,11 +37,10 @@
 #pragma once
 
 #include <moveit/macros/class_forward.h>
-#include <moveit/planning_scene/planning_scene.h>                     // for getting kinematic model
-#include <moveit/setup_assistant/tools/compute_default_collisions.h>  // for LinkPairMap
-#include <yaml-cpp/yaml.h>                                            // outputing yaml config files
-#include <urdf/model.h>                                               // to share throughout app
-#include <srdfdom/srdf_writer.h>                                      // for writing srdf data
+#include <moveit/planning_scene/planning_scene.h>  // for getting kinematic model
+#include <yaml-cpp/yaml.h>                         // outputing yaml config files
+#include <urdf/model.h>                            // to share throughout app
+#include <srdfdom/srdf_writer.h>                   // for writing srdf data
 
 #include <utility>
 
@@ -71,6 +70,9 @@ struct GroupMetaData
   std::string kinematics_solver_;               // Name of kinematics plugin to use
   double kinematics_solver_search_resolution_;  // resolution to use with solver
   double kinematics_solver_timeout_;            // solver timeout
+  double goal_joint_tolerance_;                 // joint tolerance for goal constraints
+  double goal_position_tolerance_;              // position tolerance for goal constraints
+  double goal_orientation_tolerance_;           // orientation tolerance for goal constraints
   std::string kinematics_parameters_file_;      // file for additional kinematics parameters
   std::string default_planner_;                 // Name of the default planner to use
 };
@@ -236,9 +238,6 @@ public:
   // NOTE: Created when the robot urdf is not compatible with Gazebo.
   std::string gazebo_urdf_string_;
 
-  /// Whether a new Gazebo URDF is created
-  bool save_gazebo_urdf_;
-
   // ******************************************************************************************
   // SRDF Data
   // ******************************************************************************************
@@ -308,7 +307,7 @@ public:
   srdf::Model::Group* findGroupByName(const std::string& name);
 
   /// Load the allowed collision matrix from the SRDF's list of link pairs
-  void loadAllowedCollisionMatrix();
+  void loadAllowedCollisionMatrix(const srdf::SRDFWriter& srdf);
 
   // ******************************************************************************************
   // Public Functions for outputting configuration and setting files

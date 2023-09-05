@@ -682,7 +682,12 @@ void PlanningScene::getPlanningSceneDiffMsg(moveit_msgs::PlanningScene& scene_ms
     for (const std::pair<const std::string, collision_detection::World::Action>& it : *world_diff_)
     {
       if (it.first == OCTOMAP_NS)
-        do_omap = true;
+      {
+        if (it.second == collision_detection::World::DESTROY)
+          scene_msg.world.octomap.octomap.id = "cleared";  // indicate cleared octomap
+        else
+          do_omap = true;
+      }
       else if (it.second == collision_detection::World::DESTROY)
       {
         // if object became attached, it should not be recorded as removed here
@@ -1058,12 +1063,13 @@ bool PlanningScene::loadGeometryFromStream(std::istream& in, const Eigen::Isomet
         ROS_ERROR_NAMED(LOGNAME, "Failed to read object pose from scene file");
         return false;
       }
-      pose = offset * pose;  // Transform pose by input pose offset
-      world_->setObjectPose(object_id, pose);
+      Eigen::Isometry3d object_pose = offset * pose;  // Transform pose by input pose offset
 
       // Read in shapes
       unsigned int shape_count;
       in >> shape_count;
+      if (shape_count)  // If there are any shapes to be loaded, clear any existing object first
+        world_->removeObject(object_id);
       for (std::size_t i = 0; i < shape_count && in.good() && !in.eof(); ++i)
       {
         const auto shape = shapes::ShapeConstPtr(shapes::constructShapeFromText(in));
@@ -1097,6 +1103,9 @@ bool PlanningScene::loadGeometryFromStream(std::istream& in, const Eigen::Isomet
           }
         }
       }
+
+      // Finally set object's pose once
+      world_->setObjectPose(object_id, object_pose);
 
       // Read in subframes (added in the new scene format)
       if (uses_new_scene_format)
@@ -1301,7 +1310,7 @@ bool PlanningScene::setPlanningSceneDiffMsg(const moveit_msgs::PlanningScene& sc
     result &= processCollisionObjectMsg(collision_object);
 
   // if an octomap was specified, replace the one we have with that one
-  if (!scene_msg.world.octomap.octomap.data.empty())
+  if (!scene_msg.world.octomap.octomap.id.empty())
     processOctomapMsg(scene_msg.world.octomap);
 
   return result;

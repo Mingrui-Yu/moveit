@@ -2,6 +2,17 @@
 Changelog for package moveit_servo
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+1.1.12 (2023-05-13)
+-------------------
+* Simplify servo config + reusable launch files (`#3326 <https://github.com/ros-planning/moveit/issues/3326>`_)
+* Contributors: Robert Haschke
+
+1.1.11 (2022-12-21)
+-------------------
+
+1.1.10 (2022-09-13)
+-------------------
+
 1.1.9 (2022-03-06)
 ------------------
 

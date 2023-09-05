@@ -125,15 +125,24 @@ public:
     can_replan_ = false;
     replan_delay_ = 2.0;
     replan_attempts_ = 1;
-    goal_joint_tolerance_ = 1e-4;
-    goal_position_tolerance_ = 1e-4;     // 0.1 mm
-    goal_orientation_tolerance_ = 1e-3;  // ~0.1 deg
-    allowed_planning_time_ = 5.0;
-    num_planning_attempts_ = 1;
-    node_handle_.param<double>("robot_description_planning/default_velocity_scaling_factor",
-                               max_velocity_scaling_factor_, 0.1);
-    node_handle_.param<double>("robot_description_planning/default_acceleration_scaling_factor",
-                               max_acceleration_scaling_factor_, 0.1);
+    allowed_planning_time_ = DEFAULT_ALLOWED_PLANNING_TIME;
+    num_planning_attempts_ = DEFAULT_NUM_PLANNING_ATTEMPTS;
+    max_cartesian_speed_ = 0.0;
+
+    std::string desc = opt.robot_description_.length() ? opt.robot_description_ : ROBOT_DESCRIPTION;
+
+    std::string kinematics_desc = desc + "_kinematics/";
+    node_handle_.param<double>(kinematics_desc + opt.group_name_ + "/goal_joint_tolerance", goal_joint_tolerance_,
+                               DEFAULT_GOAL_JOINT_TOLERANCE);
+    node_handle_.param<double>(kinematics_desc + opt.group_name_ + "/goal_position_tolerance", goal_position_tolerance_,
+                               DEFAULT_GOAL_POSITION_TOLERANCE);
+    node_handle_.param<double>(kinematics_desc + opt.group_name_ + "/goal_orientation_tolerance",
+                               goal_orientation_tolerance_, DEFAULT_GOAL_ORIENTATION_TOLERANCE);
+
+    std::string planning_desc = desc + "_planning/";
+    node_handle_.param<double>(planning_desc + "default_velocity_scaling_factor", max_velocity_scaling_factor_, 0.1);
+    node_handle_.param<double>(planning_desc + "default_acceleration_scaling_factor", max_acceleration_scaling_factor_,
+                               0.1);
     initializing_constraints_ = false;
 
     if (joint_model_group_->isChain())
@@ -415,6 +424,18 @@ public:
     {
       variable = target_value;
     }
+  }
+
+  void limitMaxCartesianLinkSpeed(const double max_speed, const std::string& link_name)
+  {
+    cartesian_speed_limited_link_ = link_name;
+    max_cartesian_speed_ = max_speed;
+  }
+
+  void clearMaxCartesianLinkSpeed()
+  {
+    cartesian_speed_limited_link_ = "";
+    max_cartesian_speed_ = 0.0;
   }
 
   moveit::core::RobotState& getTargetRobotState()
@@ -936,6 +957,8 @@ public:
     req.path_constraints = path_constraints;
     req.avoid_collisions = avoid_collisions;
     req.link_name = getEndEffectorLink();
+    req.cartesian_speed_limited_link = cartesian_speed_limited_link_;
+    req.max_cartesian_speed = max_cartesian_speed_;
 
     if (cartesian_path_service_.call(req, res))
     {
@@ -1062,6 +1085,8 @@ public:
     request.num_planning_attempts = num_planning_attempts_;
     request.max_velocity_scaling_factor = max_velocity_scaling_factor_;
     request.max_acceleration_scaling_factor = max_acceleration_scaling_factor_;
+    request.cartesian_speed_limited_link = cartesian_speed_limited_link_;
+    request.max_cartesian_speed = max_cartesian_speed_;
     request.allowed_planning_time = allowed_planning_time_;
     request.pipeline_id = planning_pipeline_id_;
     request.planner_id = planner_id_;
@@ -1301,6 +1326,8 @@ private:
   unsigned int num_planning_attempts_;
   double max_velocity_scaling_factor_;
   double max_acceleration_scaling_factor_;
+  std::string cartesian_speed_limited_link_;
+  double max_cartesian_speed_;
   double goal_joint_tolerance_;
   double goal_position_tolerance_;
   double goal_orientation_tolerance_;
@@ -1479,6 +1506,16 @@ void MoveGroupInterface::setMaxAccelerationScalingFactor(double max_acceleration
   impl_->setMaxAccelerationScalingFactor(max_acceleration_scaling_factor);
 }
 
+void MoveGroupInterface::limitMaxCartesianLinkSpeed(const double max_speed, const std::string& link_name)
+{
+  impl_->limitMaxCartesianLinkSpeed(max_speed, link_name);
+}
+
+void MoveGroupInterface::clearMaxCartesianLinkSpeed()
+{
+  impl_->clearMaxCartesianLinkSpeed();
+}
+
 moveit::core::MoveItErrorCode MoveGroupInterface::asyncMove()
 {
   return impl_->move(false);
@@ -1564,9 +1601,8 @@ double MoveGroupInterface::computeCartesianPath(const std::vector<geometry_msgs:
                                                 double jump_threshold, moveit_msgs::RobotTrajectory& trajectory,
                                                 bool avoid_collisions, moveit_msgs::MoveItErrorCodes* error_code)
 {
-  moveit_msgs::Constraints path_constraints_tmp;
-  return computeCartesianPath(waypoints, eef_step, jump_threshold, trajectory, path_constraints_tmp, avoid_collisions,
-                              error_code);
+  return computeCartesianPath(waypoints, eef_step, jump_threshold, trajectory, moveit_msgs::Constraints(),
+                              avoid_collisions, error_code);
 }
 
 double MoveGroupInterface::computeCartesianPath(const std::vector<geometry_msgs::Pose>& waypoints, double eef_step,
@@ -1574,17 +1610,10 @@ double MoveGroupInterface::computeCartesianPath(const std::vector<geometry_msgs:
                                                 const moveit_msgs::Constraints& path_constraints, bool avoid_collisions,
                                                 moveit_msgs::MoveItErrorCodes* error_code)
 {
-  if (error_code)
-  {
-    return impl_->computeCartesianPath(waypoints, eef_step, jump_threshold, trajectory, path_constraints,
-                                       avoid_collisions, *error_code);
-  }
-  else
-  {
-    moveit_msgs::MoveItErrorCodes error_code_tmp;
-    return impl_->computeCartesianPath(waypoints, eef_step, jump_threshold, trajectory, path_constraints,
-                                       avoid_collisions, error_code_tmp);
-  }
+  moveit_msgs::MoveItErrorCodes err_tmp;
+  moveit_msgs::MoveItErrorCodes& err = error_code ? *error_code : err_tmp;
+  return impl_->computeCartesianPath(waypoints, eef_step, jump_threshold, trajectory, path_constraints,
+                                     avoid_collisions, err);
 }
 
 void MoveGroupInterface::stop()
@@ -1622,7 +1651,7 @@ void MoveGroupInterface::setRandomTarget()
   impl_->setTargetType(JOINT);
 }
 
-const std::vector<std::string>& MoveGroupInterface::getJointNames() const
+const std::vector<std::string>& MoveGroupInterface::getVariableNames() const
 {
   return impl_->getJointModelGroup()->getVariableNames();
 }
@@ -1712,6 +1741,11 @@ bool MoveGroupInterface::setJointValueTarget(const std::map<std::string, double>
 bool MoveGroupInterface::setJointValueTarget(const std::vector<std::string>& variable_names,
                                              const std::vector<double>& variable_values)
 {
+  if (variable_names.size() != variable_values.size())
+  {
+    ROS_ERROR_STREAM("sizes of name and position arrays do not match");
+    return false;
+  }
   const auto& allowed = impl_->getJointModelGroup()->getVariableNames();
   for (const auto& variable_name : variable_names)
   {
