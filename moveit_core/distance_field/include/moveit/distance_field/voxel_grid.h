@@ -41,6 +41,9 @@
 #include <Eigen/Core>
 #include <moveit/macros/declare_ptr.h>
 
+// // mingrui added 
+// #include <iostream>
+
 namespace distance_field
 {
 /// \brief Specifies dimension of different axes
@@ -528,6 +531,14 @@ inline int VoxelGrid<T>::getCellFromLocation(Dimension dim, double loc) const
   //
   // where  origin_minus = origin - 0.5*resolution
   //
+
+//     // mingrui added
+//   if(loc == 0.485){
+//     std::cout << "test: " << std::endl;
+//     std::cout << int(floor((0.475 - origin_minus_[dim]) * oo_resolution_)) << std::endl;
+//     std::cout << int(floor((0.485 - origin_minus_[dim]) * oo_resolution_)) << std::endl;
+//   }
+
   return int(floor((loc - origin_minus_[dim]) * oo_resolution_));
 }
 

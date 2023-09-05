@@ -45,13 +45,13 @@
 
 namespace collision_detection
 {
-static const double DEFAULT_SIZE_X = 3.0;
-static const double DEFAULT_SIZE_Y = 3.0;
-static const double DEFAULT_SIZE_Z = 4.0;
-static const bool DEFAULT_USE_SIGNED_DISTANCE_FIELD = false;
-static const double DEFAULT_RESOLUTION = .02;
+static const double DEFAULT_SIZE_X = 3.0; // default: 3.0
+static const double DEFAULT_SIZE_Y = 3.0; // default: 3.0
+static const double DEFAULT_SIZE_Z = 3.0; // default: 4.0
+static const bool DEFAULT_USE_SIGNED_DISTANCE_FIELD = true; // default: false
+static const double DEFAULT_RESOLUTION = 0.01;  // default: 0.02
 static const double DEFAULT_COLLISION_TOLERANCE = 0.0;
-static const double DEFAULT_MAX_PROPOGATION_DISTANCE = .25;
+static const double DEFAULT_MAX_PROPOGATION_DISTANCE = 0.25; // default: 0.25
 
 MOVEIT_CLASS_FORWARD(CollisionEnvDistanceField);  // Defines CollisionEnvDistanceFieldPtr, ConstPtr, WeakPtr... etc
 

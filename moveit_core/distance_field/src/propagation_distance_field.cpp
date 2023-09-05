@@ -191,6 +191,7 @@ void PropagationDistanceField::addPointsToField(const EigenSTL::vector_Vector3d&
       }
     }
   }
+
   addNewObstacleVoxels(voxel_points);
 }
 

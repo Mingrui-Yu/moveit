@@ -283,7 +283,29 @@ void DistanceField::getOcTreePoints(const octomap::OcTree* octree, EigenSTL::vec
   {
     if (octree->isNodeOccupied(*it))
     {
-      if (it.getSize() <= resolution_)
+        // mingrui commented
+    //   if (it.getSize() <= resolution_)
+    //   {
+    //     Eigen::Vector3d point(it.getX(), it.getY(), it.getZ());
+    //     points->push_back(point);
+    //   }
+    //   else
+    //   {
+    //     double ceil_val = ceil(it.getSize() / resolution_) * resolution_ / 2.0;
+    //     for (double x = it.getX() - ceil_val; x <= it.getX() + ceil_val; x += resolution_)
+    //     {
+    //       for (double y = it.getY() - ceil_val; y <= it.getY() + ceil_val; y += resolution_)
+    //       {
+    //         for (double z = it.getZ() - ceil_val; z <= it.getZ() + ceil_val; z += resolution_)
+    //         {
+    //           points->push_back(Eigen::Vector3d(x, y, z));
+    //         }
+    //       }
+    //     }
+    //   }
+
+      // mingrui added
+      if (it.getSize() < resolution_)
       {
         Eigen::Vector3d point(it.getX(), it.getY(), it.getZ());
         points->push_back(point);
@@ -291,15 +313,18 @@ void DistanceField::getOcTreePoints(const octomap::OcTree* octree, EigenSTL::vec
       else
       {
         double ceil_val = ceil(it.getSize() / resolution_) * resolution_ / 2.0;
-        for (double x = it.getX() - ceil_val; x <= it.getX() + ceil_val; x += resolution_)
+        for (double x = it.getX() - ceil_val; x <= it.getX() + ceil_val; x += resolution_ / 2.0)
         {
-          for (double y = it.getY() - ceil_val; y <= it.getY() + ceil_val; y += resolution_)
-          {
-            for (double z = it.getZ() - ceil_val; z <= it.getZ() + ceil_val; z += resolution_)
+            double point_x = std::max(it.getX() - ceil_val + 1e-4, std::min(x, it.getX() + ceil_val - 1e-4));
+            for (double y = it.getY() - ceil_val; y <= it.getY() + ceil_val; y += resolution_  / 2.0)
             {
-              points->push_back(Eigen::Vector3d(x, y, z));
+                double point_y = std::max(it.getY() - ceil_val + 1e-4, std::min(y, it.getY() + ceil_val - 1e-4));
+                for (double z = it.getZ() - ceil_val; z <= it.getZ() + ceil_val; z += resolution_  / 2.0)
+                {
+                    double point_z = std::max(it.getZ() - ceil_val + 1e-4, std::min(z, it.getZ() + ceil_val - 1e-4));
+                    points->push_back(Eigen::Vector3d(point_x, point_y, point_z));
+                }
             }
-          }
         }
       }
     }
